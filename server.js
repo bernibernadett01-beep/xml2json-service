@@ -200,19 +200,20 @@ app.post("/api/xml2json", express.text({ type: ["text/*", "application/xml"], li
 });
 
 // XML ca fișier (multipart form-data, field name: file)
-app.post("/api/xml2json_file", upload.single("file"), (req, res) => {
+app.post("/api/xml2json_file", upload.any(), (req, res) => {
   try {
-    if (!req.file) return res.status(400).json({ ok: false, error: "No file uploaded" });
-    const xml = req.file.buffer.toString("utf8");
+    const f = (req.files && req.files[0]) ? req.files[0] : null;
+    if (!f) return res.status(400).json({ ok:false, error:"No file uploaded" });
+
+    const xml = f.buffer.toString("utf8");
     const json = parser.parse(xml);
     const mapped = mapInvoiceToStandard(json);
     if (!mapped.ok) return res.status(422).json(mapped);
     return res.json(mapped);
   } catch (e) {
-    return res.status(400).json({ ok: false, error: e.message || "Parse error" });
+    return res.status(400).json({ ok:false, error: e.message || "Parse error" });
   }
 });
-
 const PORT = process.env.PORT || 8080;
 app.listen(PORT, () => {
   console.log("xml2json service running on port", PORT);
