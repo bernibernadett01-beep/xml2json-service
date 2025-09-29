@@ -3,7 +3,9 @@
   "version": "1.0.0",
   "description": "XML invoice to JSON adapter for NutriCert",
   "type": "module",
-  "engines": { "node": ">=18" },
+  "engines": {
+    "node": ">=18"
+  },
   "scripts": {
     "start": "node server.js",
     "dev": "NODE_ENV=development node server.js"
@@ -13,6 +15,7 @@
     "dotenv": "^16.4.5",
     "express": "^4.19.2",
     "fast-xml-parser": "^4.3.6",
-    "multer": "^1.4.5-lts.1"
+    "multer": "^1.4.5-lts.1",
+    "node-fetch": "^3.3.2"
   }
 }
