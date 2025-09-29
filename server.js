@@ -186,6 +186,31 @@ function mapInvoiceToStandard(json) {
 app.get("/api/health", (_req, res) => {
   res.json({ ok: true });
 });
+// Primește { url: "https://..." }, descarcă XML-ul și îl parsează
+app.post("/api/xml2json_by_url", async (req, res) => {
+  try {
+    const url = req.body?.url;
+    if (!url || typeof url !== "string") {
+      return res.status(400).json({ ok: false, error: "Missing 'url' in JSON body" });
+    }
+
+    // Node 18+ are fetch nativ (nu mai ai nevoie de node-fetch)
+    const resp = await fetch(url);
+    if (!resp.ok) {
+      return res.status(400).json({ ok: false, error: `Fetch failed with HTTP ${resp.status}` });
+    }
+    const xml = await resp.text();
+
+    const json = parser.parse(xml);
+    const mapped = mapInvoiceToStandard(json);
+    if (!mapped.ok) return res.status(422).json(mapped);
+
+    return res.json(mapped);
+  } catch (e) {
+    return res.status(400).json({ ok: false, error: e.message || "Parse error" });
+  }
+});
+
 
 // XML ca RAW text
 app.post("/api/xml2json", express.text({ type: ["text/*", "application/xml"], limit: process.env.XML_MAX_SIZE || "5mb" }), (req, res) => {
@@ -215,30 +240,7 @@ app.post("/api/xml2json_file", upload.any(), (req, res) => {
     return res.status(400).json({ ok:false, error: e.message || "Parse error" });
   }
 });
-// Primește { url: "https://..." }, descarcă XML-ul și îl parsează
-app.post("/api/xml2json_by_url", async (req, res) => {
-  try {
-    const url = req.body?.url;
-    if (!url || typeof url !== "string") {
-      return res.status(400).json({ ok: false, error: "Missing 'url' in JSON body" });
-    }
-    // descarcă fișierul
-    const resp = await fetch(url);
-    if (!resp.ok) {
-      return res.status(400).json({ ok: false, error: `Fetch failed with ${resp.status}` });
-    }
-    const xml = await resp.text();
 
-    // parsează
-    const json = parser.parse(xml);
-    const mapped = mapInvoiceToStandard(json);
-    if (!mapped.ok) return res.status(422).json(mapped);
-
-    return res.json(mapped);
-  } catch (e) {
-    return res.status(400).json({ ok: false, error: e.message || "Parse error" });
-  }
-});
 
 const PORT = process.env.PORT || 8080;
 app.listen(PORT, () => {
