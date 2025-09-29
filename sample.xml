@@ -1,0 +1,31 @@
+<Invoice>
+  <ID>INV-123</ID>
+  <IssueDate>2025-09-29</IssueDate>
+  <DocumentCurrencyCode>RON</DocumentCurrencyCode>
+  <AccountingSupplierParty>
+    <Party>
+      <PartyName><Name>Furnizor SRL</Name></PartyName>
+      <PartyTaxScheme><CompanyID>RO12345678</CompanyID></PartyTaxScheme>
+    </Party>
+  </AccountingSupplierParty>
+  <LegalMonetaryTotal>
+    <TaxExclusiveAmount>100</TaxExclusiveAmount>
+    <TaxInclusiveAmount>119</TaxInclusiveAmount>
+  </LegalMonetaryTotal>
+  <InvoiceLine>
+    <InvoicedQuantity @_unitCode="kg">2</InvoicedQuantity>
+    <Price><PriceAmount>30</PriceAmount></Price>
+    <Item><Name>Faina alba 000</Name></Item>
+    <TaxTotal>
+      <TaxSubtotal><TaxCategory><Percent>19</Percent></TaxCategory></TaxSubtotal>
+    </TaxTotal>
+  </InvoiceLine>
+  <InvoiceLine>
+    <InvoicedQuantity @_unitCode="buc">1</InvoicedQuantity>
+    <Price><PriceAmount>40</PriceAmount></Price>
+    <Item><Name>Drojdie uscata</Name></Item>
+    <TaxTotal>
+      <TaxSubtotal><TaxCategory><Percent>19</Percent></TaxCategory></TaxSubtotal>
+    </TaxTotal>
+  </InvoiceLine>
+</Invoice>
