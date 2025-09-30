@@ -86,18 +86,20 @@ function mapInvoiceToStandard(json) {
   const totalWithVat =
     toNum(legalMonetary.TaxInclusiveAmount?.["#text"] ?? legalMonetary.TaxInclusiveAmount) ?? null;
 
-  // Lines
+  // === Lines (UBL: InvoiceLine) ===
   let rawLines = root.InvoiceLine || root.invoiceLine || [];
   if (!Array.isArray(rawLines)) rawLines = [rawLines];
   rawLines = rawLines.filter(Boolean);
 
   const items = rawLines.map((ln, idx) => {
+    // Denumire
     const name =
       safeGet(ln, "Item.Name") ||
       safeGet(ln, "Item.Description") ||
       safeGet(ln, "Description") ||
       `Item ${idx + 1}`;
 
+    // Cantitate + U.M.
     const invQty = ln.InvoicedQuantity;
     const qtyInvoiced = toNum(invQty?.["#text"] ?? invQty);
     const unit =
@@ -107,22 +109,39 @@ function mapInvoiceToStandard(json) {
       safeGet(ln, "Price.BaseQuantity.unitCode") ||
       null;
 
+    // Preț unitar fără TVA (Price/PriceAmount)
     const priceNoVat =
       toNum(ln.Price?.PriceAmount?.["#text"] ?? ln.Price?.PriceAmount) ??
       toNum(safeGet(ln, "UnitPrice"));
 
+    // Valoarea liniei fără TVA: LineExtensionAmount (fallback: qty * price)
+    const lineExt = safeGet(ln, "LineExtensionAmount");
+    const valueNoVat =
+      toNum(lineExt?.["#text"] ?? lineExt) ??
+      (qtyInvoiced != null && priceNoVat != null
+        ? +(qtyInvoiced * priceNoVat).toFixed(4)
+        : null);
+
+    // Cotă TVA (Percent) -> fracție (19 -> 0.19)
     const vatPercent =
       toNum(safeGet(ln, "Item.ClassifiedTaxCategory.Percent")) ??
       toNum(safeGet(ln, "TaxTotal.TaxSubtotal.TaxCategory.Percent")) ??
       null;
-
     const vatRate = vatPercent != null ? toVatRate(vatPercent) : null;
 
-    const valueNoVat =
-      qtyInvoiced != null && priceNoVat != null ? +(qtyInvoiced * priceNoVat).toFixed(4) : null;
+    // Valoare TVA pe linie – preferăm TaxAmount din XML dacă există
+    const explicitVat =
+      toNum(safeGet(ln, "TaxTotal.TaxSubtotal.TaxAmount.#text")) ??
+      toNum(safeGet(ln, "TaxTotal.TaxSubtotal.TaxAmount")) ??
+      toNum(safeGet(ln, "TaxTotal.TaxAmount.#text")) ??
+      toNum(safeGet(ln, "TaxTotal.TaxAmount"));
 
     const vatValue =
-      valueNoVat != null && vatRate != null ? +(valueNoVat * vatRate).toFixed(4) : null;
+      explicitVat != null
+        ? +explicitVat.toFixed(4)
+        : valueNoVat != null && vatRate != null
+          ? +(valueNoVat * vatRate).toFixed(4)
+          : null;
 
     return {
       product_name: name,
@@ -130,10 +149,10 @@ function mapInvoiceToStandard(json) {
       qty_invoiced: qtyInvoiced,
       qty_received: null,
       lot: null,
-      price_no_vat: priceNoVat,
-      vat_rate: vatRate,
-      value_no_vat: valueNoVat,
-      vat_value: vatValue
+      price_no_vat: priceNoVat,   // preț unitar fără TVA
+      value_no_vat: valueNoVat,   // valoare linie fără TVA
+      vat_rate: vatRate,          // cotă TVA (fracție)
+      vat_value: vatValue         // valoare TVA pe linie (din XML dacă există)
     };
   });
 
