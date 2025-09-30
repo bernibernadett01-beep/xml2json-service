@@ -64,10 +64,17 @@ function mapInvoiceToStandard(json) {
   const root = json.Invoice || json.invoice || json;
   if (!root) return { ok: false, error: "No Invoice root found" };
 
-  // Header
+  // ===== Header =====
+  // Numele furnizorului poate fi în PartyName/Name (COMTIM)
+  // sau în PartyLegalEntity/RegistrationName (STEJAR), uneori PartyLegalEntity e listă.
+  const ple = safeGet(root, "AccountingSupplierParty.Party.PartyLegalEntity");
+  const pleRegName = Array.isArray(ple)
+    ? (ple[0]?.RegistrationName ?? null)
+    : safeGet(root, "AccountingSupplierParty.Party.PartyLegalEntity.RegistrationName");
+
   const supplierName =
     safeGet(root, "AccountingSupplierParty.Party.PartyName.Name") ||
-    safeGet(root, "AccountingSupplierParty.Party.RegistrationName") ||
+    pleRegName ||
     safeGet(root, "Supplier.Name");
 
   const supplierCUI =
@@ -86,7 +93,7 @@ function mapInvoiceToStandard(json) {
   const totalWithVat =
     toNum(legalMonetary.TaxInclusiveAmount?.["#text"] ?? legalMonetary.TaxInclusiveAmount) ?? null;
 
-  // === Lines (UBL: InvoiceLine) ===
+  // ===== Lines (UBL: InvoiceLine) =====
   let rawLines = root.InvoiceLine || root.invoiceLine || [];
   if (!Array.isArray(rawLines)) rawLines = [rawLines];
   rawLines = rawLines.filter(Boolean);
